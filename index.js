@@ -43,14 +43,13 @@ for (const file of commandFiles) {
 // import Client and IntentsBitField from discord.js
 require('dotenv/config');
 const { DisTube } = require('distube');
+const { Discord } = require('discord.js');
 const { Client, Events, IntentsBitField, REST } = require('discord.js');
 const { token } = require('./config.json');
 const { OpenAI } = require('openai');
 const { SpotifyPlugin } = require('@distube/spotify');
 const { SoundCloudPlugin } = require('@distube/soundcloud');
 const { YtDlpPlugin } = require('@distube/yt-dlp');
-
-
 
 // create new client object
 const client = new Client({
@@ -64,15 +63,14 @@ const client = new Client({
 });
 
 
-
-client.DisTube = new DisTube({
+const distube = new DisTube(client, {
 	leaveOnStop: false,
 	emitNewSongOnly: true,
 	emitAddSongWhenCreatingQueue: false,
 	emitAddListWhenCreatingQueue: false,
 	plugins:[
 		new SpotifyPlugin({
-			emitEventsAfterFetching: true
+			emitEventsAfterFetching: true,
 		}),
 		new SoundCloudPlugin(),
 		new YtDlpPlugin(),
@@ -91,8 +89,10 @@ client.once(Events.ClientReady, c => {
 
 // bot listens to message create
 client.on('messageCreate', async (message) => {
+	const prefix = '!';
 	if (message.author.bot || !message.guild) return;
-	if (message.mentions.has(client.user.id)) {
+	// chatGPT code
+	if (message.mentions.has(client.user.id) && !message.content.toLowerCase().startsWith(prefix)) {
 
 		await message.channel.sendTyping();
 
@@ -136,7 +136,29 @@ client.on('messageCreate', async (message) => {
 		message.reply();
 
 	}
+	// DisTube player code
+	if (!message.content.toLowerCase().startsWith(prefix) && message.mentions.has(client.user.id)) return;
+	const args = message.content.slice(prefix.length).trim().split(/ +/g);
+	const voiceChannel = message.member.voice.channel;
+	if (args.shift().toLowerCase() === 'play') {
+		if (!voiceChannel) {
+			return message.channel.send('you should be in the voice channel in order to use this command!');
+		}
+		const song = args.join(' ');
+		if (!song) {
+			return message.channel.send('You should provide a song name. Providing artist name would give you a more accurate song!');
+		}
+		distube.play(message.member.voice.channel, args.join(' '), {
+			member: message.member,
+			textChannel: message.channel,
+			message,
+		});
+	}
+
 });
 
+distube.on('playSong', (queue, song) => {
+	queue.textChannel.send('NOW PLAYING: ' + song.name);
+});
 
 client.login(token);
