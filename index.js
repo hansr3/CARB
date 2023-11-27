@@ -41,12 +41,22 @@ for (const file of commandFiles) {
 // Implementation using IntentsBitField
 // destructure discord.js library -> (deconstruct/unpackage)
 // import Client and IntentsBitField from discord.js
+
+// util and proj env imports
 require('dotenv/config');
-const { DisTube } = require('distube');
-const { Discord } = require('discord.js');
-const { Client, Events, IntentsBitField, REST } = require('discord.js');
 const { token } = require('./config.json');
+const fs = require('fs');
+
+
+// core discord.js imports
+const { Client, Events, IntentsBitField, REST, Collection } = require('discord.js');
+
+
+// chatGPT imports
 const { OpenAI } = require('openai');
+
+// Music player imports
+const { DisTube } = require('distube');
 const { SpotifyPlugin } = require('@distube/spotify');
 const { SoundCloudPlugin } = require('@distube/soundcloud');
 const { YtDlpPlugin } = require('@distube/yt-dlp');
@@ -62,7 +72,7 @@ const client = new Client({
 	],
 });
 
-
+// distube object
 const distube = new DisTube(client, {
 	leaveOnStop: false,
 	emitNewSongOnly: true,
@@ -77,6 +87,7 @@ const distube = new DisTube(client, {
 	],
 });
 
+// chatGPT object
 const openai = new OpenAI({
 	apiKey: process.env.API_KEY,
 });
@@ -140,7 +151,10 @@ client.on('messageCreate', async (message) => {
 	if (!message.content.toLowerCase().startsWith(prefix) && message.mentions.has(client.user.id)) return;
 	const args = message.content.slice(prefix.length).trim().split(/ +/g);
 	const voiceChannel = message.member.voice.channel;
-	if (args.shift().toLowerCase() === 'play') {
+	const argsChoice = args.shift().toLowerCase();
+	// switch case for the music player
+	switch (argsChoice) {
+	case 'play': {
 		if (!voiceChannel) {
 			return message.channel.send('you should be in the voice channel in order to use this command!');
 		}
@@ -153,7 +167,19 @@ client.on('messageCreate', async (message) => {
 			textChannel: message.channel,
 			message,
 		});
+		break;
 	}
+	case 'pause': {
+		break;
+	}
+	default: {
+		return message.channel.send('Unknown command please type /help to show valid commands!');
+
+	}
+	}
+	/* if (args.shift().toLowerCase() === 'play') {
+
+	} */
 
 });
 
@@ -162,3 +188,4 @@ distube.on('playSong', (queue, song) => {
 });
 
 client.login(token);
+
