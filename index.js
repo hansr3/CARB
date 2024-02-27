@@ -104,47 +104,53 @@ client.on('messageCreate', async (message) => {
 	if (message.author.bot || !message.guild) return;
 	// chatGPT code
 	if (message.mentions.has(client.user.id) && !message.content.toLowerCase().startsWith(prefix)) {
+		try {
+			await message.channel.sendTyping();
 
-		await message.channel.sendTyping();
-
-		const sendTypingInterval = setInterval(() => {
+			/* const sendTypingInterval = setInterval(() => {
 			message.channel.sendTyping();
-		}, 5000);
+		}, 5000); */
 
-		// chat gpt responds
-		const response = await openai.chat.completions.create({
-			model: 'gpt-4',
-			messages: [
-				{
-					// name:
-					role: 'system',
-					content: 'a helpful talkative bot just tag it to start talking.',
-				},
-				{
-					role: 'user',
-					content: message.content,
-				},
-			],
-		}).catch((error) => console.error('OpenAI Error:\n', error));
+			// chat gpt responds
+			const response = await openai.chat.completions.create({
+				model: 'gpt-3.5-turbo',
+				messages: [
+					{
+						// name:
+						role: 'system',
+						content: 'a helpful talkative bot just tag it to start talking.',
+					},
+					{
+						role: 'user',
+						content: message.content,
+					},
+				],
+			});
+			/* .catch((error) => console.error('OpenAI Error:\n', error));
 
-		clearInterval(sendTypingInterval);
+			clearInterval(sendTypingInterval); */
 
-		if (!response) {
-			message.reply('Currently there is a problem with the OpenAI API. Please try again later. Sorry for the inconvinience :)');
-			return;
+			if (!response) {
+				message.reply('Currently there is a problem with the OpenAI API. Please try again later. Sorry for the inconvinience :)');
+				return;
+			}
+
+			// sends message separately if the response is more that 2000 character
+			const responseMessage = response.choices[0].message.content;
+			const chunkSizeLimit = 2000;
+
+			for (let i = 0; i < responseMessage.length; i += chunkSizeLimit) {
+				const chunk = responseMessage.substring(i, i + chunkSizeLimit);
+
+				await message.reply(chunk);
+			}
+
+			// message.reply();
 		}
-
-		// sends message separately if the response is more that 2000 character
-		const responseMessage = response.choices[0].message.content;
-		const chunkSizeLimit = 2000;
-
-		for (let i = 0; i < responseMessage.length; i += chunkSizeLimit) {
-			const chunk = responseMessage.substring(i, i + chunkSizeLimit);
-
-			await message.reply(chunk);
+		catch (error) {
+			console.error('OpenAI Error:\n', error);
+			message.reply('An error occurred while processing your request.');
 		}
-
-		message.reply();
 
 	}
 	// DisTube player code
